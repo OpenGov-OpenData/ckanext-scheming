@@ -40,6 +40,12 @@
       "preset": "dataset_organization"
     },
     {
+      "field_name": "group",
+      "label": "Groups",
+      "form_snippet": "groups.html",
+      "form_include_blank_choice":"true"
+    },
+    {
       "field_name": "url",
       "label": "Source",
       "form_placeholder": "http://example.com/dataset.json",

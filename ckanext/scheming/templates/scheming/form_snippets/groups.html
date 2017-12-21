@@ -13,7 +13,7 @@
     extra_html=help_text()
     ) -%}
   {%- set choices = [] -%}
-  {%- for c in h.groups_available() -%}
+  {%- for c in h.groups_available(True) -%}
     {%- do choices.append(
       (c['name'], h.scheming_language_text(c['display_name']))) -%}
   {%- endfor -%}

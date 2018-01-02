@@ -45,6 +45,7 @@ from ckanext.scheming.converters import (
 
 import os
 import inspect
+import ast
 
 ignore_missing = get_validator('ignore_missing')
 not_empty = get_validator('not_empty')
@@ -201,6 +202,7 @@ class SchemingDatasetsPlugin(p.SingletonPlugin, DefaultDatasetForm,
     p.implements(p.IDatasetForm, inherit=True)
     p.implements(p.IActions)
     p.implements(p.IValidators)
+    p.implements(p.IPackageController,inherit=True)
 
     SCHEMA_OPTION = 'scheming.dataset_schemas'
     FALLBACK_OPTION = 'scheming.dataset_fallback'
@@ -267,6 +269,52 @@ class SchemingDatasetsPlugin(p.SingletonPlugin, DefaultDatasetForm,
             'scheming_dataset_schema_show': scheming_dataset_schema_show,
         }
 
+
+    def after_create(self,context,pkg_dict):
+        if 'group' in pkg_dict:
+            grouplist = pkg_dict['group']
+            if 'u\'' in grouplist:
+                groups_selected = [ item.encode('ascii') for item in ast.literal_eval(grouplist) ]
+            else:
+                groups_selected = [grouplist.encode('ascii')]
+
+            for group_id in groups_selected:
+                data = {
+                    'id': group_id,
+                    'object': pkg_dict['id'],
+                    'object_type': 'package',
+                    'capacity': 'public'
+                    }
+                p.toolkit.get_action('member_create')(context, data)
+
+        return pkg_dict
+
+    def after_update(self,context,pkg_dict):
+        if 'group' in pkg_dict:
+            grouplist = pkg_dict['group']
+            if 'u\'' in grouplist:
+                groups_selected = [ item.encode('ascii') for item in ast.literal_eval(grouplist) ]
+            else:
+                groups_selected = [grouplist.encode('ascii')]
+
+            for group_id in groups_selected:
+                data = {
+                    'id': group_id,
+                    'object': pkg_dict['id'],
+                    'object_type': 'package',
+                    'capacity': 'public'
+                    }
+                p.toolkit.get_action('member_create')(context, data)
+
+            self.remove_from_other_groups(context,pkg_dict['id'],groups_selected)
+
+        return pkg_dict
+
+    def remove_from_other_groups(self, context, package_id,updated_groups):
+        package = p.toolkit.get_action('package_show')(context, {'id': package_id})
+        for group in package['groups']:
+            if group['name'] not in updated_groups:
+                p.toolkit.get_action('member_delete')(context, {'id': group['id'], 'object': package['id'], 'object_type': 'package'})
 
 class SchemingGroupsPlugin(p.SingletonPlugin, _GroupOrganizationMixin,
                            DefaultGroupForm, _SchemingMixin):
@@ -466,3 +514,4 @@ def _expand_schemas(schemas):
             s[fname] = [_expand_preset(f) for f in s[fname]]
         out[name] = s
     return out
+

@@ -48,7 +48,24 @@
     <input type="hidden" name="_ckan_phase" value="" />
   {%- endif -%}
 
+  {% if data.id and h.check_access('package_delete', {'id': data.id}) and data.state != 'active' %}
+    <div class="control-group form-group control-medium">
+      <label for="field-state" class="control-label">{{ _('State') }}</label>
+      <div class="controls">
+        <select class="form-control" id="field-state" name="state">
+          <option value="active" {% if data.get('state', 'none') == 'active' %} selected="selected" {% endif %}>{{ _('Active') }}</option>
+          <option value="deleted" {% if data.get('state', 'none') == 'deleted' %} selected="selected" {% endif %}>{{ _('Deleted') }}</option>
+        </select>
+      </div>
+    </div>
+  {% endif %}
+
 {% endblock %}
 
 {% block metadata_fields %}
+  {% block package_metadata_fields_custom %}
+    {% block custom_fields %}
+      {% snippet 'snippets/custom_form_fields.html', extras=data.extras, errors=errors, limit=3 %}
+    {% endblock %}
+  {% endblock %}
 {% endblock %}

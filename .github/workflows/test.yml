@@ -45,7 +45,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Install requirements
+    - name: Install requirements for CKAN 2.9
+      if: matrix.ckan-version == '2.9'
+      run: |
+        pip install --upgrade setuptools==70.0.0
+        pip install -e .
+        # Replace default path to CKAN core config file with the one on the container
+        sed -i -e 's/use = config:.*/use = config:\/srv\/app\/src\/ckan\/test-core.ini/' test.ini
+        sed -i -e 's/use = config:.*/use = config:\/srv\/app\/src\/ckan\/test-core.ini/' test_subclass.ini
+    - name: Install requirements for other CKAN versions
+      if: matrix.ckan-version != '2.9'
       run: |
         pip install -e .
         # Replace default path to CKAN core config file with the one on the container
@@ -56,6 +65,18 @@ jobs:
         pip install -r test-requirements.txt
         ckan -c test.ini db init
     - name: Run all tests
-      run: pytest --ckan-ini=test.ini --cov=ckanext.scheming ckanext/scheming/tests
+      run: pytest --ckan-ini=test.ini --cov=ckanext.scheming --cov-report xml:coverage.xml ckanext/scheming/tests
     - name: Run plugin subclassing tests
       run: pytest --ckan-ini=test_subclass.ini ckanext/scheming/tests/test_dataset_display.py ckanext/scheming/tests/test_form.py::TestDatasetFormNew ckanext/scheming/tests/test_dataset_logic.py
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      with:
+        args: >
+          -Dsonar.projectKey=ckanext-scheming
+          -Dsonar.sources=ckanext/scheming
+          -Dsonar.tests=ckanext/scheming/tests
+          -Dsonar.exclusions=ckanext/scheming/tests/**
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_API_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_EXTERNAL_URL }}

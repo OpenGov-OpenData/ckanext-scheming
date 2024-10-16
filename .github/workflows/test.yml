@@ -59,3 +59,14 @@ jobs:
       run: pytest --ckan-ini=test.ini --cov=ckanext.scheming ckanext/scheming/tests
     - name: Run plugin subclassing tests
       run: pytest --ckan-ini=test_subclass.ini ckanext/scheming/tests/test_dataset_display.py ckanext/scheming/tests/test_form.py::TestDatasetFormNew ckanext/scheming/tests/test_dataset_logic.py
+    - name: SonarQube Scan
+      uses: sonarsource/sonarqube-scan-action@master
+      with:
+        args: >
+          -Dsonar.projectKey=ckanext-scheming
+          -Dsonar.sources=ckanext/scheming
+          -Dsonar.tests=ckanext/scheming/tests
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+      env:
+        SONAR_TOKEN: ${{ secrets.SONAR_API_TOKEN }}
+        SONAR_HOST_URL: ${{ secrets.SONAR_EXTERNAL_URL }}
